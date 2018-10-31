@@ -5,15 +5,18 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	homedir "github.com/mitchellh/go-homedir"
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/sstarcher/helm-release/helm"
+	"fmt"
 )
 
 var cfgFile string
 var tag string
 var tagPath string
+var printVersion bool
+var silent bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -28,6 +31,10 @@ var rootCmd = &cobra.Command{
 			dir = args[0]
 		}
 
+		if silent {
+			log.SetLevel(log.FatalLevel)
+		}
+
 		chart, err := helm.New(dir)
 		if err != nil {
 			return err
@@ -37,7 +44,14 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
 		log.Infof("updating the Chart.yaml to version %s", *version)
+		if printVersion {
+			if silent {
+				fmt.Println(*version)
+			}
+			return nil
+		}
 
 		chart.UpdateChartVersion(*version)
 		if tag != "" {
@@ -73,6 +87,8 @@ func init() {
 	// when this action is called directly.
 	rootCmd.Flags().StringVarP(&tag, "tag", "t", "", "Sets the docker image tag in values.yaml")
 	rootCmd.Flags().StringVar(&tagPath, "path", helm.DefaultTagPath, "Sets the path to the image tag to modify in values.yaml")
+	rootCmd.Flags().BoolVar(&printVersion, "print", false, "when enabled only prints the version")
+	rootCmd.Flags().BoolVar(&silent, "silent", false, "when enabled suppresses the logging")
 }
 
 // initConfig reads in config file and ENV variables if set.
